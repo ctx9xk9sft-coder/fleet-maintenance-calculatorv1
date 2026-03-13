@@ -1,4 +1,6 @@
 import vinDatabase from "../data/vin_database.json";
+import engineCodesDb from "../data/engine_codes.json";
+import gearboxCodesDb from "../data/gearbox_codes.json";
 
 function decodeVin(vin) {
   const db = vinDatabase;
@@ -67,7 +69,6 @@ function decodeVin(vin) {
     warnings: [],
     possible_matches: [],
 
-    // Novi VIN summary sloj
     vin_summary: {
       manufacturer: null,
       country_hint: null,
@@ -93,7 +94,15 @@ function decodeVin(vin) {
       serial_number: null,
     },
 
-    // UI kompatibilnost sa postojećim App.jsx
+    enrichment: {
+      possibleEngineCodes: [],
+      possibleGearboxCodes: [],
+      gearboxTechCandidates: [],
+      engineSource: "not_enriched",
+      gearboxSource: "not_enriched",
+    },
+
+    // UI kompatibilnost
     marka: "Skoda",
     model: null,
     motorKod: null,
@@ -272,7 +281,7 @@ function decodeVin(vin) {
     downgradeConfidence(result, "medium");
   }
 
-  // Novi summary sloj
+  // Summary
   result.vin_summary.manufacturer = result.wmi.manufacturer;
   result.vin_summary.country_hint = result.wmi.country_hint;
   result.vin_summary.model = result.model_info.name;
@@ -285,6 +294,10 @@ function decodeVin(vin) {
   result.vin_summary.model_year = result.model_year.year;
   result.vin_summary.plant = result.plant.name;
 
+  // Enrichment layer
+  enrichWithEngineCodes(result);
+  enrichWithGearboxCodes(result);
+
   // UI kompatibilnost
   result.marka = "Skoda";
   result.model = [result.model_info.name, result.model_info.generation].filter(Boolean).join(" ");
@@ -295,11 +308,87 @@ function decodeVin(vin) {
   result.drivetrain = result.body.drivetrain || "N/A";
   result.fuelType = normalizeFuelLabel(result.engine.fuel_type);
   result.candidates = result.possible_matches || [];
+
+  if (result.enrichment.possibleGearboxCodes.length > 0) {
+    result.gearboxCode = result.enrichment.possibleGearboxCodes.join(", ");
+    result.gearboxCodeSource = "enriched_from_model_year_profile";
+  }
+
   result.reason = result.valid
     ? null
     : (result.validation_errors.join(", ") || "VIN nije podržan");
 
   return result;
+}
+
+function enrichWithEngineCodes(result) {
+  const modelKey = toEnrichmentModelKey(result.model_info.name);
+  if (!modelKey) {
+    return;
+  }
+
+  const candidates = engineCodesDb?.models?.[modelKey] || [];
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return;
+  }
+
+  const modelYear = result.model_year?.year || null;
+  const displacement = result.engine?.displacement_l ?? null;
+  const fuelType = result.engine?.fuel_type ?? null;
+  const powers = Array.isArray(result.engine?.power_kw) ? result.engine.power_kw : [];
+
+  const filtered = candidates.filter((item) => {
+    if (fuelType && item.fuel_type !== fuelType) return false;
+    if (displacement !== null && item.displacement_l !== displacement) return false;
+    if (powers.length > 0 && !powers.includes(item.kw)) return false;
+    if (modelYear && !isYearCompatible(modelYear, item.mounting)) return false;
+    return true;
+  });
+
+  result.enrichment.possibleEngineCodes = unique(filtered.map((item) => item.code));
+  result.enrichment.engineSource =
+    result.enrichment.possibleEngineCodes.length > 0
+      ? "enriched_from_model_power_year"
+      : "not_enriched";
+
+  if (result.enrichment.possibleEngineCodes.length > 1) {
+    result.warnings.push("Multiple possible ETKA engine codes matched the VIN profile.");
+    downgradeConfidence(result, "medium");
+  }
+}
+
+function enrichWithGearboxCodes(result) {
+  const modelKey = toEnrichmentModelKey(result.model_info.name);
+  if (!modelKey) {
+    return;
+  }
+
+  const candidates = gearboxCodesDb?.models?.[modelKey] || [];
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return;
+  }
+
+  const modelYear = result.model_year?.year || null;
+  const inferredGearbox = inferGearbox(result);
+  const allowedTech = mapInferredGearboxToTechCandidates(inferredGearbox);
+
+  const filtered = candidates.filter((item) => {
+    if (modelYear && !isYearCompatible(modelYear, item.mounting)) return false;
+    if (allowedTech.length > 0 && !allowedTech.includes(item.tech_info)) return false;
+    return true;
+  });
+
+  result.enrichment.possibleGearboxCodes = unique(filtered.map((item) => item.code));
+  result.enrichment.gearboxTechCandidates = unique(filtered.map((item) => item.tech_info));
+  result.enrichment.gearboxSource =
+    result.enrichment.possibleGearboxCodes.length > 0
+      ? "enriched_from_model_year_inferred_gearbox"
+      : "not_enriched";
+
+  if (result.enrichment.possibleGearboxCodes.length > 1) {
+    result.warnings.push("Multiple possible gearbox codes matched the VIN profile.");
+    downgradeConfidence(result, "medium");
+  }
 }
 
 function resolveModelRuleset(modelCode, bodyCode, db, result) {
@@ -393,6 +482,54 @@ function inferGearbox(result) {
   }
 
   return "Manual";
+}
+
+function toEnrichmentModelKey(modelName) {
+  const map = {
+    Fabia: "FABIA",
+    Scala: "SCALA",
+    Kamiq: "KAMIQ",
+    Karoq: "KAROQ",
+    Kodiaq: "KODIAQ",
+    Octavia: "OCTAVIA",
+    Superb: "SUPERB",
+    Enyaq: "ENYAQ",
+  };
+
+  return map[modelName] || null;
+}
+
+function isYearCompatible(modelYear, mounting) {
+  if (!mounting || !mounting.start) return true;
+
+  const startYear = parseInt(String(mounting.start).slice(0, 4), 10);
+  const endYear = mounting.end ? parseInt(String(mounting.end).slice(0, 4), 10) : null;
+
+  if (Number.isNaN(startYear)) return true;
+  if (modelYear < startYear) return false;
+  if (endYear !== null && !Number.isNaN(endYear) && modelYear > endYear) return false;
+
+  return true;
+}
+
+function mapInferredGearboxToTechCandidates(inferredGearbox) {
+  if (inferredGearbox === "Manual") {
+    return ["5S", "6S"];
+  }
+
+  if (inferredGearbox === "DSG") {
+    return ["6A", "7A", "7C", "8A"];
+  }
+
+  if (inferredGearbox === "EV") {
+    return ["1E"];
+  }
+
+  return [];
+}
+
+function unique(items) {
+  return [...new Set(items.filter(Boolean))];
 }
 
 export const decodeSkodaVin = decodeVin;
