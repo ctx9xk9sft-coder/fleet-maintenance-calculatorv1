@@ -1,1 +1,710 @@
-
+{
+  "meta": {
+    "name": "skoda_engine_codes",
+    "version": "1.0.0"
+  },
+  "models": {
+    "FABIA": [
+      {
+        "code": "DPCA",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 1.5,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "FABIA",
+        "notes": "TSI",
+        "mounting": {
+          "start": "2021-11",
+          "end": null
+        }
+      },
+      {
+        "code": "DSGA",
+        "kw": 48,
+        "hp": 65,
+        "displacement_l": 1.0,
+        "cylinders": 3,
+        "fuel_type": "petrol",
+        "model": "FABIA",
+        "notes": "MPI",
+        "mounting": {
+          "start": "2021-06",
+          "end": null
+        }
+      },
+      {
+        "code": "DSGD",
+        "kw": 59,
+        "hp": 80,
+        "displacement_l": 1.0,
+        "cylinders": 3,
+        "fuel_type": "petrol",
+        "model": "FABIA",
+        "notes": "MPI",
+        "mounting": {
+          "start": "2021-06",
+          "end": null
+        }
+      }
+    ],
+    "SCALA": [
+      {
+        "code": "DPCA",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 1.5,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "SCALA",
+        "notes": "TSI",
+        "mounting": {
+          "start": "2019-07",
+          "end": null
+        }
+      },
+      {
+        "code": "DXUA",
+        "kw": 85,
+        "hp": 116,
+        "displacement_l": 1.0,
+        "cylinders": 3,
+        "fuel_type": "petrol",
+        "model": "SCALA",
+        "notes": "TSI",
+        "mounting": {
+          "start": "2021-11",
+          "end": null
+        }
+      }
+    ],
+    "KAMIQ": [
+      {
+        "code": "DPCA",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 1.5,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "KAMIQ",
+        "notes": "TSI",
+        "mounting": {
+          "start": "2019-07",
+          "end": null
+        }
+      },
+      {
+        "code": "DXUA",
+        "kw": 85,
+        "hp": 116,
+        "displacement_l": 1.0,
+        "cylinders": 3,
+        "fuel_type": "petrol",
+        "model": "KAMIQ",
+        "notes": "TSI",
+        "mounting": {
+          "start": "2021-11",
+          "end": null
+        }
+      }
+    ],
+    "KAROQ": [
+      {
+        "code": "DPCA",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 1.5,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "KAROQ",
+        "notes": "TSI",
+        "mounting": {
+          "start": "2019-07",
+          "end": null
+        }
+      },
+      {
+        "code": "DSBA",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 1.4,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "KAROQ",
+        "notes": "TSI",
+        "mounting": {
+          "start": "2020-12",
+          "end": "2022-12"
+        }
+      },
+      {
+        "code": "DXRB",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "KAROQ",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2024-03",
+          "end": null
+        }
+      },
+      {
+        "code": "DXRC",
+        "kw": 85,
+        "hp": 116,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "KAROQ",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2024-03",
+          "end": null
+        }
+      }
+    ],
+    "KODIAQ": [
+      {
+        "code": "DPCA",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 1.5,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "KODIAQ",
+        "notes": "TSI",
+        "mounting": {
+          "start": "2019-07",
+          "end": "2024-06"
+        }
+      },
+      {
+        "code": "CRFD",
+        "kw": 105,
+        "hp": 143,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "KODIAQ",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2017-05",
+          "end": "2018-11"
+        }
+      },
+      {
+        "code": "CRGB",
+        "kw": 130,
+        "hp": 177,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "KODIAQ",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2017-04",
+          "end": "2024-06"
+        }
+      },
+      {
+        "code": "DNNE",
+        "kw": 150,
+        "hp": 204,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "KODIAQ",
+        "notes": "TFSI",
+        "mounting": {
+          "start": "2024-07",
+          "end": null
+        }
+      },
+      {
+        "code": "DNPB",
+        "kw": 195,
+        "hp": 265,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "KODIAQ",
+        "notes": "TFSI",
+        "mounting": {
+          "start": "2025-01",
+          "end": null
+        }
+      },
+      {
+        "code": "EANB",
+        "kw": 85,
+        "hp": 116,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "KODIAQ",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2024-04",
+          "end": null
+        }
+      }
+    ],
+    "OCTAVIA": [
+      {
+        "code": "CLCA",
+        "kw": 81,
+        "hp": 110,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "OCTAVIA",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2010-03",
+          "end": "2013-06"
+        }
+      },
+      {
+        "code": "CKFC",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "OCTAVIA",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2012-11",
+          "end": "2015-05"
+        }
+      },
+      {
+        "code": "CRMB",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "OCTAVIA",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2014-08",
+          "end": "2017-02"
+        }
+      },
+      {
+        "code": "CRVC",
+        "kw": 105,
+        "hp": 143,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "OCTAVIA",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2012-11",
+          "end": "2017-02"
+        }
+      },
+      {
+        "code": "CPWA",
+        "kw": 81,
+        "hp": 110,
+        "displacement_l": 1.4,
+        "cylinders": 4,
+        "fuel_type": "cng",
+        "model": "OCTAVIA",
+        "notes": "TGI CNG",
+        "mounting": {
+          "start": "2017-01",
+          "end": "2020-10"
+        }
+      },
+      {
+        "code": "DNNE",
+        "kw": 150,
+        "hp": 204,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "OCTAVIA",
+        "notes": "TFSI",
+        "mounting": {
+          "start": "2024-02",
+          "end": null
+        }
+      },
+      {
+        "code": "DNPD",
+        "kw": 195,
+        "hp": 265,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "OCTAVIA",
+        "notes": "TFSI",
+        "mounting": {
+          "start": "2024-02",
+          "end": null
+        }
+      },
+      {
+        "code": "DSTA",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "OCTAVIA",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2019-11",
+          "end": null
+        }
+      },
+      {
+        "code": "DSTB",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "OCTAVIA",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2019-11",
+          "end": null
+        }
+      },
+      {
+        "code": "DSUD",
+        "kw": 85,
+        "hp": 116,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "OCTAVIA",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2019-11",
+          "end": null
+        }
+      },
+      {
+        "code": "DXRC",
+        "kw": 85,
+        "hp": 116,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "OCTAVIA",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2024-04",
+          "end": null
+        }
+      },
+      {
+        "code": "EANA",
+        "kw": 85,
+        "hp": 116,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "OCTAVIA",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2020-07",
+          "end": null
+        }
+      }
+    ],
+    "SUPERB": [
+      {
+        "code": "CFFB",
+        "kw": 103,
+        "hp": 140,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "SUPERB",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2010-03",
+          "end": "2013-05"
+        }
+      },
+      {
+        "code": "CFGB",
+        "kw": 125,
+        "hp": 170,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "SUPERB",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2010-05",
+          "end": "2013-05"
+        }
+      },
+      {
+        "code": "CLJA",
+        "kw": 103,
+        "hp": 140,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "SUPERB",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2013-05",
+          "end": "2015-05"
+        }
+      },
+      {
+        "code": "CRGA",
+        "kw": 130,
+        "hp": 177,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "SUPERB",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2015-03",
+          "end": "2024-06"
+        }
+      },
+      {
+        "code": "CRLB",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "SUPERB",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2015-03",
+          "end": "2024-06"
+        }
+      },
+      {
+        "code": "DSRA",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "SUPERB",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2015-03",
+          "end": "2024-06"
+        }
+      },
+      {
+        "code": "DSRB",
+        "kw": 110,
+        "hp": 150,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "SUPERB",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2015-03",
+          "end": "2024-06"
+        }
+      },
+      {
+        "code": "DSUB",
+        "kw": 90,
+        "hp": 122,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "diesel",
+        "model": "SUPERB",
+        "notes": "TDI CR",
+        "mounting": {
+          "start": "2015-03",
+          "end": "2024-06"
+        }
+      },
+      {
+        "code": "DNNE",
+        "kw": 150,
+        "hp": 204,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "SUPERB",
+        "notes": "TFSI",
+        "mounting": {
+          "start": "2024-11",
+          "end": null
+        }
+      },
+      {
+        "code": "DNPB",
+        "kw": 195,
+        "hp": 265,
+        "displacement_l": 2.0,
+        "cylinders": 4,
+        "fuel_type": "petrol",
+        "model": "SUPERB",
+        "notes": "TFSI",
+        "mounting": {
+          "start": "2024-03",
+          "end": null
+        }
+      },
+      {
+        "code": "EANB",
+        "kw": 85,
+        "hp": 116,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "SUPERB",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2023-11",
+          "end": null
+        }
+      }
+    ],
+    "ENYAQ": [
+      {
+        "code": "EBJA",
+        "kw": 150,
+        "hp": 204,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "ENYAQ",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2020-10",
+          "end": null
+        }
+      },
+      {
+        "code": "EBJC",
+        "kw": 150,
+        "hp": 204,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "ENYAQ",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2020-10",
+          "end": null
+        }
+      },
+      {
+        "code": "EBRA",
+        "kw": 80,
+        "hp": 109,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "ENYAQ",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2020-10",
+          "end": null
+        }
+      },
+      {
+        "code": "EDCA",
+        "kw": 170,
+        "hp": 231,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "ENYAQ",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2020-10",
+          "end": null
+        }
+      },
+      {
+        "code": "EDCC",
+        "kw": 170,
+        "hp": 231,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "ENYAQ",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2020-10",
+          "end": null
+        }
+      },
+      {
+        "code": "EDDA",
+        "kw": 80,
+        "hp": 109,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "ENYAQ",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2020-10",
+          "end": null
+        }
+      },
+      {
+        "code": "EDFA",
+        "kw": 210,
+        "hp": 286,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "ENYAQ",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2020-10",
+          "end": null
+        }
+      },
+      {
+        "code": "EDXA",
+        "kw": 80,
+        "hp": 109,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "ENYAQ",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2020-10",
+          "end": null
+        }
+      },
+      {
+        "code": "EEWA",
+        "kw": 245,
+        "hp": 333,
+        "displacement_l": 0.0,
+        "cylinders": 0,
+        "fuel_type": "ev",
+        "model": "ENYAQ",
+        "notes": "E-MOTOR",
+        "mounting": {
+          "start": "2020-10",
+          "end": null
+        }
+      }
+    ]
+  }
+}
