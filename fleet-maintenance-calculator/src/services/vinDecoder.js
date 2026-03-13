@@ -293,7 +293,6 @@ function decodeVin(vin) {
     downgradeConfidence(result, "medium");
   }
 
-  // Summary
   result.vin_summary.manufacturer = result.wmi.manufacturer;
   result.vin_summary.country_hint = result.wmi.country_hint;
   result.vin_summary.model = result.model_info.name;
@@ -306,14 +305,14 @@ function decodeVin(vin) {
   result.vin_summary.model_year = result.model_year.year;
   result.vin_summary.plant = result.plant.name;
 
-  // Exact VIN dataset layer
   enrichWithExactVinDataset(result);
 
-  // Legacy enrichment layer
-  enrichWithEngineCodes(result);
-  enrichWithGearboxCodes(result);
+  // Ako postoji exact VIN pogodak, ne dozvoli da ga fallback sloj razvodni
+  if (!isExactDatasetMatch(result)) {
+    enrichWithEngineCodes(result);
+    enrichWithGearboxCodes(result);
+  }
 
-  // UI kompatibilnost
   result.marka = "Skoda";
   result.model = [result.model_info.name, result.model_info.generation].filter(Boolean).join(" ");
   result.motorKod =
@@ -327,12 +326,17 @@ function decodeVin(vin) {
   result.fuelType = normalizeFuelLabel(result.engine.fuel_type);
   result.candidates = result.possible_matches || [];
 
-  if (result.enrichment.possibleGearboxCodes.length > 0) {
+  if (isExactDatasetMatch(result)) {
+    result.gearboxCode =
+      result.enrichment?.exactVinMatch?.transmissionCode ||
+      result.gearboxCode ||
+      "N/A";
+    result.gearboxCodeSource = "exact_vin_training_dataset";
+    result.menjacSource = "vin_training_dataset_exact";
+    result.confidence = "exact";
+  } else if (result.enrichment.possibleGearboxCodes.length > 0) {
     result.gearboxCode = result.enrichment.possibleGearboxCodes.join(", ");
-    result.gearboxCodeSource =
-      result.enrichment.source === "vin_training_dataset_exact"
-        ? "exact_vin_training_dataset"
-        : "enriched_from_model_year_profile";
+    result.gearboxCodeSource = "enriched_from_model_year_profile";
   }
 
   applyOilDataToUi(result);
@@ -350,6 +354,7 @@ function enrichWithExactVinDataset(result) {
 
   result.enrichment.exactVinMatch = exact;
   result.enrichment.source = "vin_training_dataset_exact";
+  result.confidence = "exact";
 
   if (exact.model) {
     result.model_info.name = exact.model;
@@ -360,19 +365,18 @@ function enrichWithExactVinDataset(result) {
   }
 
   if (exact.engineCode) {
-    result.enrichment.possibleEngineCodes = unique([
-      exact.engineCode,
-      ...result.enrichment.possibleEngineCodes,
-    ]);
+    result.engine.code = exact.engineCode;
+    result.motorKod = exact.engineCode;
+    result.enrichment.possibleEngineCodes = [exact.engineCode];
     result.enrichment.engineSource = "vin_training_dataset_exact";
   }
 
   if (exact.transmissionCode) {
-    result.enrichment.possibleGearboxCodes = unique([
-      exact.transmissionCode,
-      ...result.enrichment.possibleGearboxCodes,
-    ]);
+    result.gearboxCode = exact.transmissionCode;
+    result.enrichment.possibleGearboxCodes = [exact.transmissionCode];
     result.enrichment.gearboxSource = "vin_training_dataset_exact";
+    result.gearboxCodeSource = "exact_vin_training_dataset";
+    result.menjacSource = "vin_training_dataset_exact";
   }
 
   if (exact.drivetrain) {
@@ -457,12 +461,20 @@ function enrichWithExactVinDataset(result) {
   result.vin_summary.model_year = result.model_year.year;
 }
 
+function isExactDatasetMatch(result) {
+  return result?.enrichment?.source === "vin_training_dataset_exact";
+}
+
 function findExactVinMatch(vin) {
   if (!Array.isArray(vinTrainingDataset)) return null;
   return vinTrainingDataset.find((item) => item?.vin === vin) || null;
 }
 
 function enrichWithEngineCodes(result) {
+  if (isExactDatasetMatch(result) && result.enrichment?.exactVinMatch?.engineCode) {
+    return;
+  }
+
   const modelKey = toEnrichmentModelKey(result.model_info.name);
   if (!modelKey) {
     return;
@@ -614,6 +626,10 @@ function enrichWithEngineCodes(result) {
 }
 
 function enrichWithGearboxCodes(result) {
+  if (isExactDatasetMatch(result) && result.enrichment?.exactVinMatch?.transmissionCode) {
+    return;
+  }
+
   const exactTransmissionCode = result.enrichment?.exactVinMatch?.transmissionCode || null;
   if (exactTransmissionCode) {
     result.enrichment.possibleGearboxCodes = unique([
@@ -818,13 +834,14 @@ function buildUiEngineLabel(result) {
 
   if (selected) {
     const parts = [];
+    const description = selected.notes || "";
 
     if (selected.displacement_l != null) {
       parts.push(`${selected.displacement_l.toFixed(1)}`);
     }
 
-    if (selected.notes) {
-      parts.push(selected.notes);
+    if (description) {
+      parts.push(cleanEngineDescription(description, selected.displacement_l, selected.kw));
     } else if (selected.fuel_type) {
       parts.push(normalizeFuelLabel(selected.fuel_type));
     }
@@ -836,7 +853,31 @@ function buildUiEngineLabel(result) {
     return parts.join(" ").trim() || result.engine.description || "N/A";
   }
 
-  return result.engine.description || "N/A";
+  return cleanEngineDescription(result.engine.description || "") || "N/A";
+}
+
+function cleanEngineDescription(description, displacement, kw) {
+  let text = String(description || "").trim();
+  if (!text) return "";
+
+  text = text.replace(/\s+/g, " ");
+
+  if (displacement != null) {
+    const d = Number(displacement).toFixed(1).replace(".", "\\.");
+    text = text.replace(new RegExp(`\\b${d}\\s*l\\b`, "gi"), "").trim();
+    text = text.replace(new RegExp(`\\b${d}\\b`, "gi"), "").trim();
+  }
+
+  if (kw != null) {
+    text = text.replace(new RegExp(`\\b${kw}\\s*kW\\b`, "gi"), "").trim();
+    text = text.replace(new RegExp(`\\b${kw}\\b`, "gi"), "").trim();
+  }
+
+  text = text.replace(/\s{2,}/g, " ").trim();
+  text = text.replace(/^\/+\s*/, "").trim();
+  text = text.replace(/\s*\/+\s*/g, " / ").trim();
+
+  return text;
 }
 
 function isFuelCompatible(candidateFuel, vinFuel) {
