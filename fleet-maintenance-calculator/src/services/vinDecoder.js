@@ -96,6 +96,7 @@ function decodeVin(vin) {
 
     enrichment: {
       possibleEngineCodes: [],
+      engineCandidates: [],
       possibleGearboxCodes: [],
       gearboxTechCandidates: [],
       engineSource: "not_enriched",
@@ -301,8 +302,11 @@ function decodeVin(vin) {
   // UI kompatibilnost
   result.marka = "Skoda";
   result.model = [result.model_info.name, result.model_info.generation].filter(Boolean).join(" ");
-  result.motorKod = result.engine.code || "N/A";
-  result.motor = result.engine.description || "N/A";
+  result.motorKod =
+    result.enrichment.possibleEngineCodes.length === 1
+      ? result.enrichment.possibleEngineCodes[0]
+      : (result.engine.code || "N/A");
+  result.motor = buildUiEngineLabel(result);
   result.menjac = inferGearbox(result);
   result.modelYear = result.model_year.year || null;
   result.drivetrain = result.body.drivetrain || "N/A";
@@ -313,6 +317,8 @@ function decodeVin(vin) {
     result.gearboxCode = result.enrichment.possibleGearboxCodes.join(", ");
     result.gearboxCodeSource = "enriched_from_model_year_profile";
   }
+
+  applyOilDataToUi(result);
 
   result.reason = result.valid
     ? null
@@ -327,33 +333,67 @@ function enrichWithEngineCodes(result) {
     return;
   }
 
-  const candidates = engineCodesDb?.models?.[modelKey] || [];
-  if (!Array.isArray(candidates) || candidates.length === 0) {
-    return;
-  }
-
+  const engines = engineCodesDb?.engines || {};
   const modelYear = result.model_year?.year || null;
   const displacement = result.engine?.displacement_l ?? null;
   const fuelType = result.engine?.fuel_type ?? null;
   const powers = Array.isArray(result.engine?.power_kw) ? result.engine.power_kw : [];
 
-  const filtered = candidates.filter((item) => {
-    if (fuelType && item.fuel_type !== fuelType) return false;
-    if (displacement !== null && item.displacement_l !== displacement) return false;
-    if (powers.length > 0 && !powers.includes(item.kw)) return false;
-    if (modelYear && !isYearCompatible(modelYear, item.mounting)) return false;
-    return true;
-  });
+  const candidates = Object.values(engines)
+    .filter((item) => isEngineCandidateCompatible(item, modelKey, modelYear, fuelType, displacement, powers))
+    .map((item) => ({
+      ...item,
+      matchedApplications: filterMatchingApplications(item, modelKey, modelYear),
+    }));
 
-  result.enrichment.possibleEngineCodes = unique(filtered.map((item) => item.code));
+  result.enrichment.engineCandidates = candidates;
+  result.enrichment.possibleEngineCodes = unique(candidates.map((item) => item.code));
   result.enrichment.engineSource =
     result.enrichment.possibleEngineCodes.length > 0
-      ? "enriched_from_model_power_year"
+      ? "enriched_from_engine_master"
       : "not_enriched";
 
   if (result.enrichment.possibleEngineCodes.length > 1) {
     result.warnings.push("Multiple possible ETKA engine codes matched the VIN profile.");
     downgradeConfidence(result, "medium");
+  }
+
+  if (result.enrichment.possibleEngineCodes.length === 0) {
+    return;
+  }
+
+  const commonOil = getCommonOilData(candidates);
+  if (commonOil.capacity_l !== null) {
+    result.oilCapacity = `${commonOil.capacity_l} L`;
+  }
+  if (commonOil.spec) {
+    result.oilSpec = commonOil.spec;
+  }
+  if (commonOil.viscosity) {
+    result.oilSae = commonOil.viscosity;
+  }
+
+  if (result.enrichment.possibleEngineCodes.length === 1) {
+    const selected = candidates[0];
+
+    if (!result.engine.description && selected.notes) {
+      result.engine.description = selected.notes;
+    }
+
+    if (!result.engine.fuel_type && selected.fuel_type) {
+      result.engine.fuel_type = selected.fuel_type;
+    }
+
+    if (result.engine.displacement_l == null && selected.displacement_l != null) {
+      result.engine.displacement_l = selected.displacement_l;
+    }
+
+    if ((!result.engine.power_kw || result.engine.power_kw.length === 0) && selected.kw != null) {
+      result.engine.power_kw = [selected.kw];
+      result.engine.power_kw_display = String(selected.kw);
+    }
+
+    result.enrichment.selectedEngine = selected;
   }
 }
 
@@ -389,6 +429,130 @@ function enrichWithGearboxCodes(result) {
     result.warnings.push("Multiple possible gearbox codes matched the VIN profile.");
     downgradeConfidence(result, "medium");
   }
+}
+
+function isEngineCandidateCompatible(item, modelKey, modelYear, fuelType, displacement, powers) {
+  if (!item) return false;
+
+  const matchesModel =
+    Array.isArray(item.models) && item.models.includes(modelKey);
+
+  const matchesApplication = filterMatchingApplications(item, modelKey, modelYear).length > 0;
+
+  if (!matchesModel && !matchesApplication) {
+    return false;
+  }
+
+  if (fuelType && item.fuel_type && !isFuelCompatible(item.fuel_type, fuelType)) {
+    return false;
+  }
+
+  if (displacement !== null && item.displacement_l != null && Number(item.displacement_l) !== Number(displacement)) {
+    return false;
+  }
+
+  if (powers.length > 0 && item.kw != null && !powers.includes(item.kw)) {
+    return false;
+  }
+
+  return true;
+}
+
+function filterMatchingApplications(item, modelKey, modelYear) {
+  const applications = Array.isArray(item?.applications) ? item.applications : [];
+
+  return applications.filter((app) => {
+    if (modelKey && app.model !== modelKey) return false;
+    if (modelYear && !isYearCompatible(modelYear, { start: app.start, end: app.end })) return false;
+    return true;
+  });
+}
+
+function getCommonOilData(candidates) {
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    return {
+      capacity_l: null,
+      spec: null,
+      viscosity: null,
+    };
+  }
+
+  const capacities = unique(candidates.map((item) => item.oil_capacity_l));
+  const specs = unique(candidates.map((item) => item.oil_spec));
+  const viscosities = unique(candidates.map((item) => item.oil_viscosity));
+
+  return {
+    capacity_l: capacities.length === 1 ? capacities[0] : null,
+    spec: specs.length === 1 ? specs[0] : null,
+    viscosity: viscosities.length === 1 ? viscosities[0] : null,
+  };
+}
+
+function applyOilDataToUi(result) {
+  const selected = result.enrichment?.selectedEngine;
+
+  if (selected) {
+    if (selected.oil_capacity_l != null) {
+      result.oilCapacity = `${selected.oil_capacity_l} L`;
+    }
+    if (selected.oil_spec) {
+      result.oilSpec = selected.oil_spec;
+    }
+    if (selected.oil_viscosity) {
+      result.oilSae = selected.oil_viscosity;
+    }
+    return;
+  }
+
+  const commonOil = getCommonOilData(result.enrichment?.engineCandidates || []);
+
+  if (commonOil.capacity_l != null) {
+    result.oilCapacity = `${commonOil.capacity_l} L`;
+  }
+  if (commonOil.spec) {
+    result.oilSpec = commonOil.spec;
+  }
+  if (commonOil.viscosity) {
+    result.oilSae = commonOil.viscosity;
+  }
+}
+
+function buildUiEngineLabel(result) {
+  const selected = result.enrichment?.selectedEngine;
+
+  if (selected) {
+    const parts = [];
+
+    if (selected.displacement_l != null) {
+      parts.push(`${selected.displacement_l.toFixed(1)}`);
+    }
+
+    if (selected.notes) {
+      parts.push(selected.notes);
+    } else if (selected.fuel_type) {
+      parts.push(normalizeFuelLabel(selected.fuel_type));
+    }
+
+    if (selected.kw != null) {
+      parts.push(`${selected.kw} kW`);
+    }
+
+    return parts.join(" ").trim() || result.engine.description || "N/A";
+  }
+
+  return result.engine.description || "N/A";
+}
+
+function isFuelCompatible(candidateFuel, vinFuel) {
+  if (candidateFuel === vinFuel) return true;
+
+  const groups = {
+    hybrid: ["hybrid", "phev", "petrol_hybrid"],
+    phev: ["phev", "petrol_hybrid", "hybrid"],
+    petrol_hybrid: ["petrol_hybrid", "hybrid", "phev"],
+  };
+
+  return groups[candidateFuel]?.includes(vinFuel) || groups[vinFuel]?.includes(candidateFuel) || false;
 }
 
 function resolveModelRuleset(modelCode, bodyCode, db, result) {
@@ -453,6 +617,7 @@ function normalizeFuelLabel(fuelType) {
     cng: "CNG",
     phev: "PHEV",
     hybrid: "Hybrid",
+    petrol_hybrid: "Hybrid",
     ev: "EV",
   };
 
@@ -469,7 +634,7 @@ function inferGearbox(result) {
     return "EV";
   }
 
-  if (fuelType === "phev" || fuelType === "hybrid") {
+  if (fuelType === "phev" || fuelType === "hybrid" || fuelType === "petrol_hybrid") {
     return "DSG";
   }
 
@@ -529,7 +694,7 @@ function mapInferredGearboxToTechCandidates(inferredGearbox) {
 }
 
 function unique(items) {
-  return [...new Set(items.filter(Boolean))];
+  return [...new Set((items || []).filter((item) => item !== null && item !== undefined))];
 }
 
 export const decodeSkodaVin = decodeVin;
