@@ -101,6 +101,7 @@ function decodeVin(vin) {
       gearboxTechCandidates: [],
       engineSource: "not_enriched",
       gearboxSource: "not_enriched",
+      selectedEngine: null,
     },
 
     // UI kompatibilnost
@@ -340,11 +341,25 @@ function enrichWithEngineCodes(result) {
   const powers = Array.isArray(result.engine?.power_kw) ? result.engine.power_kw : [];
 
   const candidates = Object.values(engines)
-    .filter((item) => isEngineCandidateCompatible(item, modelKey, modelYear, fuelType, displacement, powers))
-    .map((item) => ({
-      ...item,
-      matchedApplications: filterMatchingApplications(item, modelKey, modelYear),
-    }));
+    .filter((item) =>
+      isEngineCandidateCompatible(
+        item,
+        modelKey,
+        modelYear,
+        fuelType,
+        displacement,
+        powers
+      )
+    )
+    .map((item) => {
+      const matchedApplications = filterMatchingApplications(item, modelKey, modelYear);
+      return {
+        ...item,
+        matchedApplications,
+        _score: scoreEngineCandidate(item, matchedApplications),
+      };
+    })
+    .sort(compareEngineCandidates);
 
   result.enrichment.engineCandidates = candidates;
   result.enrichment.possibleEngineCodes = unique(candidates.map((item) => item.code));
@@ -362,6 +377,42 @@ function enrichWithEngineCodes(result) {
     return;
   }
 
+  const bestCandidate = candidates[0] || null;
+
+  if (bestCandidate && shouldAutoSelectEngineCandidate(bestCandidate, candidates)) {
+    result.enrichment.selectedEngine = bestCandidate;
+    result.enrichment.possibleEngineCodes = [bestCandidate.code];
+
+    if (!result.engine.description && bestCandidate.notes) {
+      result.engine.description = bestCandidate.notes;
+    }
+
+    if (!result.engine.fuel_type && bestCandidate.fuel_type) {
+      result.engine.fuel_type = bestCandidate.fuel_type;
+    }
+
+    if (result.engine.displacement_l == null && bestCandidate.displacement_l != null) {
+      result.engine.displacement_l = bestCandidate.displacement_l;
+    }
+
+    if ((!result.engine.power_kw || result.engine.power_kw.length === 0) && bestCandidate.kw != null) {
+      result.engine.power_kw = [bestCandidate.kw];
+      result.engine.power_kw_display = String(bestCandidate.kw);
+    }
+
+    if (bestCandidate.oil_capacity_l != null) {
+      result.oilCapacity = `${bestCandidate.oil_capacity_l} L`;
+    }
+    if (bestCandidate.oil_spec) {
+      result.oilSpec = bestCandidate.oil_spec;
+    }
+    if (bestCandidate.oil_viscosity) {
+      result.oilSae = bestCandidate.oil_viscosity;
+    }
+
+    return;
+  }
+
   const commonOil = getCommonOilData(candidates);
   if (commonOil.capacity_l !== null) {
     result.oilCapacity = `${commonOil.capacity_l} L`;
@@ -371,29 +422,6 @@ function enrichWithEngineCodes(result) {
   }
   if (commonOil.viscosity) {
     result.oilSae = commonOil.viscosity;
-  }
-
-  if (result.enrichment.possibleEngineCodes.length === 1) {
-    const selected = candidates[0];
-
-    if (!result.engine.description && selected.notes) {
-      result.engine.description = selected.notes;
-    }
-
-    if (!result.engine.fuel_type && selected.fuel_type) {
-      result.engine.fuel_type = selected.fuel_type;
-    }
-
-    if (result.engine.displacement_l == null && selected.displacement_l != null) {
-      result.engine.displacement_l = selected.displacement_l;
-    }
-
-    if ((!result.engine.power_kw || result.engine.power_kw.length === 0) && selected.kw != null) {
-      result.engine.power_kw = [selected.kw];
-      result.engine.power_kw_display = String(selected.kw);
-    }
-
-    result.enrichment.selectedEngine = selected;
   }
 }
 
@@ -434,20 +462,29 @@ function enrichWithGearboxCodes(result) {
 function isEngineCandidateCompatible(item, modelKey, modelYear, fuelType, displacement, powers) {
   if (!item) return false;
 
-  const matchesModel =
-    Array.isArray(item.models) && item.models.includes(modelKey);
+  const hasApplications =
+    Array.isArray(item.applications) && item.applications.length > 0;
 
-  const matchesApplication = filterMatchingApplications(item, modelKey, modelYear).length > 0;
+  const matchingApplications = filterMatchingApplications(item, modelKey, modelYear);
 
-  if (!matchesModel && !matchesApplication) {
-    return false;
+  if (hasApplications) {
+    if (matchingApplications.length === 0) return false;
+  } else {
+    const matchesModel =
+      Array.isArray(item.models) && item.models.includes(modelKey);
+
+    if (!matchesModel) return false;
   }
 
   if (fuelType && item.fuel_type && !isFuelCompatible(item.fuel_type, fuelType)) {
     return false;
   }
 
-  if (displacement !== null && item.displacement_l != null && Number(item.displacement_l) !== Number(displacement)) {
+  if (
+    displacement !== null &&
+    item.displacement_l != null &&
+    Number(item.displacement_l) !== Number(displacement)
+  ) {
     return false;
   }
 
@@ -466,6 +503,56 @@ function filterMatchingApplications(item, modelKey, modelYear) {
     if (modelYear && !isYearCompatible(modelYear, { start: app.start, end: app.end })) return false;
     return true;
   });
+}
+
+function scoreEngineCandidate(item, matchedApplications) {
+  let score = 0;
+
+  if (Array.isArray(matchedApplications) && matchedApplications.length > 0) {
+    score += 100;
+    score += matchedApplications.length === 1 ? 20 : 10;
+  }
+
+  if (item.oil_capacity_l != null) score += 5;
+  if (item.oil_spec) score += 5;
+  if (item.oil_viscosity) score += 5;
+  if (item.timing_drive) score += 2;
+  if (item.kw != null) score += 1;
+
+  return score;
+}
+
+function compareEngineCandidates(a, b) {
+  const scoreDiff = (b?._score || 0) - (a?._score || 0);
+  if (scoreDiff !== 0) return scoreDiff;
+
+  const aCode = a?.code || "";
+  const bCode = b?.code || "";
+  return aCode.localeCompare(bCode);
+}
+
+function shouldAutoSelectEngineCandidate(bestCandidate, candidates) {
+  if (!bestCandidate) return false;
+  if (!Array.isArray(candidates) || candidates.length === 0) return false;
+  if (candidates.length === 1) return true;
+
+  const second = candidates[1];
+  if (!second) return true;
+
+  const bestHasApplications =
+    Array.isArray(bestCandidate.matchedApplications) &&
+    bestCandidate.matchedApplications.length > 0;
+
+  const secondHasApplications =
+    Array.isArray(second.matchedApplications) &&
+    second.matchedApplications.length > 0;
+
+  if (bestHasApplications && !secondHasApplications) return true;
+
+  const bestScore = bestCandidate._score || 0;
+  const secondScore = second._score || 0;
+
+  return bestScore - secondScore >= 20;
 }
 
 function getCommonOilData(candidates) {
