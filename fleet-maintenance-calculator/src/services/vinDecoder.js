@@ -9,17 +9,20 @@ function decodeVin(vin) {
     supported: true,
     reason: null,
     validation_errors: [],
+
     wmi: {
       code: null,
       manufacturer: null,
       country_hint: null,
     },
+
     model_info: {
       raw_code: null,
       resolved_ruleset: null,
       name: null,
       generation: null,
     },
+
     body: {
       code: null,
       style: null,
@@ -27,6 +30,7 @@ function decodeVin(vin) {
       steering: null,
       drivetrain: null,
     },
+
     engine: {
       code: null,
       description: null,
@@ -35,37 +39,71 @@ function decodeVin(vin) {
       power_kw: [],
       power_kw_display: null,
     },
+
     restraint_system: {
       code: null,
       description: null,
     },
+
     model_year: {
       code: null,
       year: null,
     },
+
     plant: {
       code: null,
       name: null,
     },
+
     serial_number: null,
+
     special_flags: {
       n1: false,
       motorsport: false,
       ambiguous_model: false,
     },
+
     confidence: "high",
     warnings: [],
     possible_matches: [],
 
-    // UI kompatibilnost
+    // Novi VIN summary sloj
+    vin_summary: {
+      manufacturer: null,
+      country_hint: null,
+      model: null,
+      generation: null,
+      body_style: null,
+      steering: null,
+      drivetrain: null,
+      fuel_type: null,
+      power_kw: null,
+      model_year: null,
+      plant: null,
+    },
+
+    vin_codes: {
+      wmi: null,
+      body_code: null,
+      engine_code: null,
+      restraint_code: null,
+      model_code: null,
+      year_code: null,
+      plant_code: null,
+      serial_number: null,
+    },
+
+    // UI kompatibilnost sa postojećim App.jsx
     marka: "Skoda",
     model: null,
     motorKod: null,
     motor: null,
     menjac: null,
+    menjacSource: "inferred",
     modelYear: null,
     drivetrain: null,
     gearboxCode: "N/A",
+    gearboxCodeSource: "not_available_from_vin",
     fuelType: null,
     oilCapacity: "N/A",
     oilSpec: "N/A",
@@ -122,6 +160,15 @@ function decodeVin(vin) {
   result.model_year.code = yearCode;
   result.plant.code = plantCode;
   result.serial_number = serialNumber;
+
+  result.vin_codes.wmi = wmi;
+  result.vin_codes.body_code = bodyCode;
+  result.vin_codes.engine_code = engineCode;
+  result.vin_codes.restraint_code = airbagCode;
+  result.vin_codes.model_code = modelCode;
+  result.vin_codes.year_code = yearCode;
+  result.vin_codes.plant_code = plantCode;
+  result.vin_codes.serial_number = serialNumber;
 
   result.wmi.manufacturer = resolveManufacturer(wmi);
   result.wmi.country_hint = resolveCountryHint(wmi);
@@ -181,7 +228,6 @@ function decodeVin(vin) {
   }
 
   const engineData = modelRules.engine_map[engineCode];
-
   if (engineData) {
     result.engine.description = engineData.description ?? null;
     result.engine.fuel_type = engineData.fuel_type ?? null;
@@ -203,7 +249,6 @@ function decodeVin(vin) {
   }
 
   const restraintData = modelRules.airbag_map[airbagCode];
-
   if (restraintData) {
     result.restraint_system.description = restraintData;
   } else {
@@ -212,7 +257,6 @@ function decodeVin(vin) {
   }
 
   const year = modelRules.year_map[yearCode];
-
   if (year) {
     result.model_year.year = year;
   } else {
@@ -221,13 +265,25 @@ function decodeVin(vin) {
   }
 
   const plant = modelRules.plant_map[plantCode];
-
   if (plant) {
     result.plant.name = plant;
   } else {
     result.warnings.push(`Unknown plant code '${plantCode}' for ruleset ${resolvedModelId}.`);
     downgradeConfidence(result, "medium");
   }
+
+  // Novi summary sloj
+  result.vin_summary.manufacturer = result.wmi.manufacturer;
+  result.vin_summary.country_hint = result.wmi.country_hint;
+  result.vin_summary.model = result.model_info.name;
+  result.vin_summary.generation = result.model_info.generation;
+  result.vin_summary.body_style = result.body.style;
+  result.vin_summary.steering = result.body.steering;
+  result.vin_summary.drivetrain = result.body.drivetrain;
+  result.vin_summary.fuel_type = normalizeFuelLabel(result.engine.fuel_type);
+  result.vin_summary.power_kw = result.engine.power_kw_display || null;
+  result.vin_summary.model_year = result.model_year.year;
+  result.vin_summary.plant = result.plant.name;
 
   // UI kompatibilnost
   result.marka = "Skoda";
