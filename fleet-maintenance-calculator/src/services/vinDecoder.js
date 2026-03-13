@@ -14,7 +14,7 @@ function decodeVin(vin) {
       manufacturer: null,
       country_hint: null,
     },
-    model: {
+    model_info: {
       raw_code: null,
       resolved_ruleset: null,
       name: null,
@@ -57,9 +57,8 @@ function decodeVin(vin) {
     warnings: [],
     possible_matches: [],
 
-    // kompatibilnost sa postojećim App.jsx
+    // UI kompatibilnost
     marka: "Skoda",
-    modelName: null,
     model: null,
     motorKod: null,
     motor: null,
@@ -119,7 +118,7 @@ function decodeVin(vin) {
   result.body.code = bodyCode;
   result.engine.code = engineCode;
   result.restraint_system.code = airbagCode;
-  result.model.raw_code = modelCode;
+  result.model_info.raw_code = modelCode;
   result.model_year.code = yearCode;
   result.plant.code = plantCode;
   result.serial_number = serialNumber;
@@ -149,9 +148,9 @@ function decodeVin(vin) {
     return result;
   }
 
-  result.model.resolved_ruleset = resolvedModelId;
-  result.model.name = modelRules.name;
-  result.model.generation = modelRules.generation;
+  result.model_info.resolved_ruleset = resolvedModelId;
+  result.model_info.name = modelRules.name;
+  result.model_info.generation = modelRules.generation;
 
   if (!modelRules.supported_wmi.includes(wmi)) {
     result.warnings.push(`WMI ${wmi} is not listed for ruleset ${resolvedModelId}.`);
@@ -230,10 +229,9 @@ function decodeVin(vin) {
     downgradeConfidence(result, "medium");
   }
 
-  // kompatibilnost sa postojećim App.jsx
+  // UI kompatibilnost
   result.marka = "Skoda";
-  result.modelName = result.model.name;
-  result.model = [result.model.name, result.model.generation].filter(Boolean).join(" ");
+  result.model = [result.model_info.name, result.model_info.generation].filter(Boolean).join(" ");
   result.motorKod = result.engine.code || "N/A";
   result.motor = result.engine.description || "N/A";
   result.menjac = inferGearbox(result);
